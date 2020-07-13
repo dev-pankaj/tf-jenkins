@@ -1,0 +1,9 @@
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+*.tfplan
+.idea/
+.DS_Store
+keypair*
