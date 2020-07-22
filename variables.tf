@@ -4,7 +4,7 @@ variable vpc_id {
 }
 
 variable keypair_name {
-  type = string
+  type    = string
   default = "jenkins"
 }
 

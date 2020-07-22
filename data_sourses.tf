@@ -30,8 +30,8 @@ data template_file jenkins_master {
 
   vars = {
     jenkins_admin_password = data.aws_ssm_parameter.jenkins_admin_password.value
-    puplic_key = data.aws_ssm_parameter.jenkins_public_key.value
-    private_key = data.aws_ssm_parameter.jenkins_private_key.value
+    puplic_key             = data.aws_ssm_parameter.jenkins_public_key.value
+    private_key            = data.aws_ssm_parameter.jenkins_private_key.value
   }
 }
 
@@ -43,7 +43,7 @@ data template_file jenkins_worker {
     server_ip        = aws_instance.jenkins_master.private_ip
     jenkins_username = "admin"
     jenkins_password = data.aws_ssm_parameter.jenkins_admin_password.value
-    puplic_key = data.aws_ssm_parameter.jenkins_public_key.value
-    private_key = data.aws_ssm_parameter.jenkins_private_key.value
+    puplic_key       = data.aws_ssm_parameter.jenkins_public_key.value
+    private_key      = data.aws_ssm_parameter.jenkins_private_key.value
   }
 }

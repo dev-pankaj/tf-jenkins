@@ -93,7 +93,7 @@ resource aws_security_group_rule jenkins_worker_ssh {
   protocol          = "tcp"
   security_group_id = aws_security_group.jenkins_worker.id
   cidr_blocks       = ["0.0.0.0/0"] # block to vpc cidr
-  description = "allow ssh to worker from master"
+  description       = "allow ssh to worker from master"
 }
 
 resource aws_security_group_rule jenkins_worker_to_all_80 {

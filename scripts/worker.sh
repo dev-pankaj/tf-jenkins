@@ -29,6 +29,7 @@ function wait_for_jenkins ()
 
 function worker_setup()
 {
+  sleep 120
   # Wait till jar file gets available
   ret=1
   while (( $ret != 0 )); do
@@ -50,9 +51,9 @@ function worker_setup()
   echo "jenkins ALL=(ALL)NOPASSWD:ALL" >> /etc/sudoers
   mkdir /var/lib/jenkins/.ssh
   chown -R jenkins:jenkins /home/jenkins/.ssh
-  echo $puplic_key > /var/lib/jenkins/.ssh/authorized_keys
-  echo $puplic_key > /var/lib/jenkins/.ssh/id_rsa.pub
-  echo $private_key > /var/lib/jenkins/.ssh/id_rsa
+  echo ${puplic_key} > /var/lib/jenkins/.ssh/authorized_keys
+  echo ${puplic_key} > /var/lib/jenkins/.ssh/id_rsa.pub
+  echo ${private_key} > /var/lib/jenkins/.ssh/id_rsa
   cat > /var/lib/jenkins/.ssh/config <<EOF
 Host *
   StrictHostKeyChecking no
@@ -88,6 +89,21 @@ EOF
 
     sleep 30
   done
+
+  # Create creds for workers
+  cat > /tmp/cred.xml <<EOF
+<com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey plugin="ssh-credentials@1.18.1">
+  <scope>GLOBAL</scope>
+  <id>ssh-worker</id>
+  <description>Generated via Terraform</description>
+  <username>jenkins</username>
+  <privateKeySource class="com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey\$DirectEntryPrivateKeySource">
+    <privateKey>${private_key}</privateKey>
+  </privateKeySource>
+</com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey>
+EOF
+
+cat /tmp/cred.xml | $jenkins_cmd create-credentials-by-xml system::system::jenkins _
 
   # Generating node.xml for creating node on Jenkins server
   cat > /tmp/node.xml <<EOF

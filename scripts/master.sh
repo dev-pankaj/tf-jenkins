@@ -7,7 +7,7 @@ function install_packages () {
   wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
   rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
   yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-  yum install python2-pip jenkins java xmlstarlet nc gcc-c++ make -y
+  yum install python2-pip jenkins java xmlstarlet nc gcc-c++ git make -y
   pip install awscli bcrypt
   pip install --upgrade awscli
   pip install --upgrade aws-ec2-assign-elastic-ip
@@ -80,9 +80,13 @@ function configure_jenkins_server ()
 {
   mkdir -p /var/lib/jenkins/.ssh
   chown -R jenkins:jenkins /var/lib/jenkins/.ssh
-  echo $puplic_key > /var/lib/jenkins/.ssh/authorized_keys
-  echo $puplic_key > /var/lib/jenkins/.ssh/id_rsa.pub
-  echo $private_key > /var/lib/jenkins/.ssh/id_rsa
+  # Give jenkins user sudo access
+  echo "jenkins ALL=(ALL)NOPASSWD:ALL" >> /etc/sudoers
+  usermod --shell /bin/bash jenkins
+  echo "Starting adding keys"
+  echo ${puplic_key} > /var/lib/jenkins/.ssh/authorized_keys
+  echo ${puplic_key} > /var/lib/jenkins/.ssh/id_rsa.pub
+  echo ${puplic_key} > /var/lib/jenkins/.ssh/id_rsa
   cat > /var/lib/jenkins/.ssh/config <<EOF
 Host *
   StrictHostKeyChecking no
@@ -90,7 +94,7 @@ EOF
 
   # Jenkins cli
   echo "installing the Jenkins cli ..."
-  cp /var/cache/jenkins/war/WEB-INF/lib/cli-2.235.1.jar /var/lib/jenkins/jenkins-cli.jar
+  cp /var/cache/jenkins/war/WEB-INF/lib/cli-2.235.2.jar /var/lib/jenkins/jenkins-cli.jar
 
   jenkins_dir="/var/lib/jenkins"
   plugins_dir="$jenkins_dir/plugins"
@@ -106,6 +110,9 @@ EOF
 
   # remove existing plugins, if any ...
   rm -rfv $plugin_list
+
+  systemctl restart jenkins
+  sleep 20
 
   for plugin in $plugin_list; do
     echo "installing plugin [$plugin] ..."
@@ -131,25 +138,8 @@ EOF
   # Restart jenkins after installing plugins
   java -jar $jenkins_dir/jenkins-cli.jar -s http://127.0.0.1:8080 -auth admin:$PASSWORD safe-restart
 
-  # Give jenkins user sudo access
-  echo "jenkins ALL=(ALL)NOPASSWD:ALL" >> /etc/sudoers
-  sleep 10
+  sleep 20
   rm $jenkins_dir/init.groovy.d/basic-security.groovy
-
-  # Create creds for workers
-  cat > /tmp/cred.xml <<EOF
-<com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey plugin="ssh-credentials@1.18.1">
-  <scope>GLOBAL</scope>
-  <id>ssh-worker</id>
-  <description>Generated via Terraform</description>
-  <username>jenkins</username>
-  <privateKeySource class="com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey\$DirectEntryPrivateKeySource">
-    <privateKey>$private_key</privateKey>
-  </privateKeySource>
-</com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey>
-EOF
-
-cat /tmp/cred.xml | java -jar $jenkins_dir/jenkins-cli.jar -s http://127.0.0.1:8080 -auth admin:$PASSWORD create-credentials-by-xml system::system::jenkins _
 }
 
 ### script starts here ###
